@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BroJJ Panel - SMM & Chat</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
+        :root { --bg: #09090b; --card: rgba(24, 24, 27, 0.7); --primary: #4f46e5; --text: #fafafa; --muted: #a1a1aa; --success: #10b981; --glass-border: rgba(255, 255, 255, 0.08); }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); overflow-x: hidden; background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg) 50%); background-attachment: fixed; }
+
+        /* Overlays & Login */
+        .fullscreen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(9, 9, 11, 0.98); backdrop-filter: blur(10px); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        #maintenanceScreen, #mainApp, #supportModal, #loadingAuth { display: none; }
+        
+        .login-box { background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid var(--primary); width: 90%; max-width: 350px; box-shadow: 0 10px 30px rgba(79, 70, 229, 0.3); }
+        .btn-google { background: white; color: black; padding: 12px; border-radius: 12px; width: 100%; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px; transition: 0.2s; }
+        .btn-google:active { transform: scale(0.95); }
+
+        /* Popup Promo Notif */
+        #promoPopup { display: none; z-index: 10000; padding: 20px; }
+        .popup-card { background: var(--bg); border: 1px solid var(--primary); border-radius: 20px; padding: 20px; max-width: 350px; width: 100%; text-align: center; }
+        .popup-img { width: 100%; height: auto; border-radius: 12px; margin-bottom: 15px; }
+        
+        .app-container { max-width: 500px; margin: 0 auto; min-height: 100vh; padding-bottom: 110px; }
+        header { padding: 25px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .balance-box { background: rgba(79, 70, 229, 0.15); padding: 10px 18px; border-radius: 15px; border: 1px solid var(--primary); backdrop-filter: blur(5px); text-align: right; }
+        .user-badge { background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; margin-top: 5px; display: inline-block; border: 1px solid var(--glass-border); }
+
+        .bottom-nav { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 450px; background: var(--card); backdrop-filter: blur(15px); display: flex; justify-content: space-around; padding: 15px; border-radius: 20px; border: 1px solid var(--glass-border); z-index: 100; }
+        .nav-item { color: var(--muted); text-align: center; cursor: pointer; transition: 0.3s; font-size: 0.7rem; width: 20%; }
+        .nav-item i { font-size: 1.3rem; display: block; margin-bottom: 5px; }
+        .nav-item.active { color: var(--primary); }
+        
+        .section { display: none; padding: 0 20px; animation: fadeIn 0.4s ease-out; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+
+        .card { background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 20px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); }
+        .cat-title { font-size: 0.9rem; color: var(--muted); margin: 25px 0 10px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+        .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .prod-card { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 15px; text-align: center; border: 1px solid var(--glass-border); cursor: pointer; transition: 0.3s; }
+        .prod-card:active { transform: scale(0.95); background: rgba(79, 70, 229, 0.2); }
+        
+        .btn-main { width: 100%; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 600; margin-top: 15px; cursor: pointer; }
+        .btn-danger { background: #ef4444; }
+        input, select, textarea { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); padding: 14px; border-radius: 12px; color: white; margin-top: 8px; outline: none; }
+
+        /* Chat UI */
+        .chat-box { flex-grow: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 12px; height: 50vh; scroll-behavior: smooth; }
+        .msg { max-width: 85%; padding: 10px 14px; border-radius: 15px; font-size: 0.85rem; word-wrap: break-word; }
+        .msg-me { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 2px; }
+        .msg-them { align-self: flex-start; background: rgba(255,255,255,0.07); border: 1px solid var(--glass-border); border-bottom-left-radius: 2px; }
+        .msg-info { font-size: 0.65rem; font-weight: 800; display: block; margin-bottom: 3px; color: #818cf8; }
+
+        /* Support Modal */
+        #supportModal { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index: 1000; flex-direction: column; }
+        .support-header { padding: 20px; background: var(--card); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 15px; }
+        .back-btn { font-size: 1.2rem; cursor: pointer; padding: 5px; }
+
+        /* Spinner */
+        .loader { border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loadingAuth" class="fullscreen-overlay" style="display: flex;">
+        <div class="loader"></div>
+        <h3 style="color: white; font-weight: 600;">Memeriksa Sesi...</h3>
+        <p style="color: var(--muted); font-size: 0.8rem; margin-top: 5px;">Mohon tunggu sebentar</p>
+    </div>
+
+    <div id="loginScreen" class="fullscreen-overlay">
+        <div class="login-box animate__animated animate__zoomIn">
+            <i class="fa-solid fa-bolt" style="font-size: 3rem; color: var(--primary); margin-bottom: 10px;"></i>
+            <h2>BroJJ SMM</h2>
+            <p style="color: var(--muted); font-size: 0.8rem; margin-top: 5px;">Akses aman dengan akun Google</p>
+            <button class="btn-google" onclick="loginGoogle()">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20">
+                Lanjutkan dengan Google
+            </button>
+        </div>
+    </div>
+
+    <div id="promoPopup" class="fullscreen-overlay">
+        <div class="popup-card">
+            <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-bell" style="color: #f59e0b;"></i> Pemberitahuan</h3>
+            <img id="popupImg" src="" class="popup-img" style="display: none;">
+            <div id="popupText" style="font-size: 0.9rem; color: var(--muted); margin-bottom: 20px;"></div>
+            <button class="btn-main" onclick="tutupPopup()" style="background: rgba(255,255,255,0.1);">Tutup</button>
+        </div>
+    </div>
+
+    <div id="maintenanceScreen" class="fullscreen-overlay">
+        <i class="fa-solid fa-person-digging" style="font-size: 4rem; color: #fbbf24; margin-bottom: 20px;"></i>
+        <h2>MAINTENANCE</h2>
+        <p style="color: var(--muted); margin-top: 10px;">Web sedang dalam perbaikan untuk peningkatan fitur.</p>
+    </div>
+
+    <div id="supportModal">
+        <div class="support-header">
+            <i class="fa-solid fa-arrow-left back-btn" onclick="closeSupport()"></i>
+            <div>
+                <h3 style="font-size: 1rem;">Admin Support</h3>
+                <small style="color: var(--success);"><i class="fa-solid fa-circle" style="font-size:0.5rem"></i> Online</small>
+            </div>
+        </div>
+        <div id="support-messages" class="chat-box" style="flex-grow: 1;"></div>
+        <div style="padding: 15px; border-top: 1px solid var(--glass-border); display: flex; gap: 10px; background: var(--bg);">
+            <input type="text" id="supportInput" placeholder="Ketik pesan komplain..." style="margin:0;">
+            <button onclick="sendSupportMessage()" style="background:var(--primary); color:white; border:none; width:50px; border-radius:12px; cursor: pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <div id="mainApp" class="app-container">
+        <header>
+            <div>
+                <div style="font-weight: 800; font-size: 1.4rem;"><i class="fa-solid fa-bolt" style="color:var(--primary)"></i> BroJJ</div>
+                <div class="user-badge" id="headerName">Loading...</div>
+            </div>
+            <div class="balance-box">
+                <small style="color:var(--muted); font-size: 0.7rem; display: block;">Saldo Aktif</small>
+                <span id="userBalance" style="font-weight: 800; font-size: 1.1rem;">Rp 0</span>
+            </div>
+        </header>
+
+        <div id="home" class="section active">
+            <div class="cat-title"><i class="fa-brands fa-instagram" style="color:#e1306c"></i> Instagram</div>
+            <div class="product-grid">
+                <div class="prod-card" onclick="openOrder('IG Followers', 15000, 100)"><span>Followers</span></div>
+                <div class="prod-card" onclick="openOrder('IG Likes', 5000, 50)"><span>Likes</span></div>
+            </div>
+            <div class="cat-title"><i class="fa-brands fa-tiktok" style="color:#fff"></i> TikTok</div>
+            <div class="product-grid">
+                <div class="prod-card" onclick="openOrder('TikTok Views', 1000, 1000)"><span>Views</span></div>
+                <div class="prod-card" onclick="openOrder('TikTok Followers', 25000, 100)"><span>Followers</span></div>
+            </div>
+        </div>
+
+        <div id="chat" class="section">
+            <div class="card">
+                <h3 style="margin-bottom: 10px;"><i class="fa-solid fa-globe"></i> Global Chat</h3>
+                <div id="chat-messages" class="chat-box" style="height: 40vh; background: rgba(0,0,0,0.3); border-radius:10px;"></div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="chatInput" placeholder="Ketik pesan..." style="margin:0;">
+                    <button onclick="sendGlobalMessage()" style="background:var(--primary); color:white; border:none; width:50px; border-radius:12px; cursor: pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="topup" class="section">
+            <div class="card">
+                <h3><i class="fa-solid fa-wallet"></i> Isi Saldo</h3>
+                <select id="topupAmt">
+                    <option value="10000">Rp 10.000</option>
+                    <option value="50000">Rp 50.000</option>
+                    <option value="100000">Rp 100.000</option>
+                </select>
+                <button class="btn-main" onclick="processTopup()">Generate Invoice</button>
+            </div>
+        </div>
+
+        <div id="account" class="section">
+            <div class="card" style="text-align: center;">
+                <img id="profilePic" src="" style="width: 80px; border-radius: 50%; border: 2px solid var(--primary); margin-bottom: 10px; display: none; object-fit: cover;">
+                <h2 id="profileName" style="margin-bottom: 5px;">Nama</h2>
+                <div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 12px; margin: 15px 0; text-align: left; font-size: 0.8rem; line-height: 1.6;">
+                    <strong style="color:var(--primary);"><i class="fa-solid fa-mobile-screen"></i> Info Perangkat:</strong><br><br>
+                    UID: <span id="profileUid" style="color:var(--muted)"></span><br>
+                    Terakhir Login: <span id="profileDate" style="color:var(--muted)"></span><br>
+                    Baterai HP: <span id="profileBattery" style="color:var(--success)">Mendeteksi...</span>
+                </div>
+                
+                <button class="btn-main" onclick="openSupport()" style="background: #10b981; margin-bottom: 10px;"><i class="fa-solid fa-headset"></i> Live Chat Admin</button>
+                <button class="btn-main btn-danger" onclick="logoutAccount()"><i class="fa-solid fa-right-from-bracket"></i> Keluar Akun</button>
+            </div>
+        </div>
+
+        <nav class="bottom-nav">
+            <div class="nav-item active" onclick="showSection('home', this)"><i class="fa-solid fa-house"></i>Home</div>
+            <div class="nav-item" onclick="showSection('chat', this)"><i class="fa-solid fa-comments"></i>Chat</div>
+            <div class="nav-item" onclick="showSection('topup', this)"><i class="fa-solid fa-wallet"></i>Topup</div>
+            <div class="nav-item" onclick="showSection('account', this)"><i class="fa-solid fa-user"></i>Akun</div>
+        </nav>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, get, set, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-database.js";
+        // MENGUBAH signInWithPopup MENJADI signInWithRedirect AGAR WORK DI HP
+        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyD3usv5rw801fV1nrXIwyDQ6eYEzC7hDk0", projectId: "kodangz", databaseURL: "https://kodangz-default-rtdb.firebaseio.com" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentUser = null;
+        
+        // Pengecekan Error jika batal redirect
+        getRedirectResult(auth).catch((error) => {
+            document.getElementById('loadingAuth').style.display = 'none';
+            Swal.fire('Login Dibatalkan', 'Gagal menyambungkan ke Google: ' + error.message, 'error');
+        });
+
+        // Deteksi Perubahan Status Login
+        onAuthStateChanged(auth, async (user) => {
+            // Sembunyikan layar loading awal
+            document.getElementById('loadingAuth').style.display = 'none';
+
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                
+                document.getElementById('headerName').innerText = user.displayName;
+                document.getElementById('profileName').innerText = user.displayName;
+                document.getElementById('profileUid').innerText = user.uid;
+                if(user.photoURL) { document.getElementById('profilePic').src = user.photoURL; document.getElementById('profilePic').style.display = 'inline-block'; }
+                
+                // Ambil Baterai & Tanggal
+                let batteryStr = 'Tidak Didukung (iOS/Browser Lama)';
+                if(navigator.getBattery) {
+                    const b = await navigator.getBattery();
+                    batteryStr = Math.round(b.level * 100) + '%';
+                }
+                const loginDate = new Date().toLocaleString('id-ID');
+                document.getElementById('profileBattery').innerText = batteryStr;
+                document.getElementById('profileDate').innerText = loginDate;
+
+                // Simpan/Update Info User ke DB
+                const userRef = ref(db, `users/${user.uid}`);
+                const snap = await get(userRef);
+                if(!snap.exists()) {
+                    await set(userRef, { balance: 0, name: user.displayName, email: user.email, info: { lastLogin: loginDate, battery: batteryStr } });
+                } else {
+                    await update(userRef, { name: user.displayName, email: user.email, 'info/lastLogin': loginDate, 'info/battery': batteryStr });
+                }
+
+                // Sync Saldo & Load Chat
+                onValue(ref(db, `users/${user.uid}/balance`), (s) => document.getElementById('userBalance').innerText = 'Rp ' + (s.val() || 0).toLocaleString());
+                loadGlobalChat();
+                loadSupportChat();
+            } else {
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('mainApp').style.display = 'none';
+            }
+        });
+
+        // Filter Sensor Kata Kasar
+        const sensorText = (text) => {
+            const badWords = ['anjing', 'bangsat', 'kontol', 'memek', 'babi', 'ngentot', 'tolol', 'goblok', 'jancok', 'asu', 'bajingan', 'pepek'];
+            let filtered = text;
+            badWords.forEach(word => { const regex = new RegExp(word, 'gi'); filtered = filtered.replace(regex, '***'); });
+            return filtered;
+        };
+
+        // FUNGSI LOGIN MENGGUNAKAN REDIRECT (Fix Bug HP)
+        window.loginGoogle = () => { 
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('loadingAuth').style.display = 'flex';
+            document.querySelector('#loadingAuth h3').innerText = "Mengalihkan ke Google...";
+            signInWithRedirect(auth, provider); 
+        };
+        
+        window.logoutAccount = () => { signOut(auth).then(() => window.location.reload()); };
+
+        // Navigasi
+        window.showSection = (id, el) => {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+        };
+
+        // --- GLOBAL CHAT ---
+        window.sendGlobalMessage = () => {
+            const input = document.getElementById('chatInput');
+            if(!input.value.trim()) return;
+            push(ref(db, 'global_chat'), { uid: currentUser.uid, user: currentUser.displayName, text: sensorText(input.value), time: serverTimestamp() });
+            input.value = '';
+        };
+        function loadGlobalChat() {
+            onValue(ref(db, 'global_chat'), (snap) => {
+                const box = document.getElementById('chat-messages'); box.innerHTML = '';
+                snap.forEach(child => {
+                    const d = child.val(); const isMe = d.uid === currentUser.uid;
+                    box.innerHTML += `<div class="msg ${isMe ? 'msg-me' : 'msg-them'}"><span class="msg-info">${isMe ? 'Anda' : d.user}</span>${d.text}</div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        // --- LIVE CHAT SUPPORT ---
+        window.openSupport = () => { document.getElementById('supportModal').style.display = 'flex'; };
+        window.closeSupport = () => { document.getElementById('supportModal').style.display = 'none'; };
+        
+        window.sendSupportMessage = () => {
+            const input = document.getElementById('supportInput');
+            if(!input.value.trim()) return;
+            push(ref(db, `support_chats/${currentUser.uid}/messages`), { sender: 'user', text: sensorText(input.value), time: serverTimestamp() });
+            update(ref(db, `support_chats/${currentUser.uid}`), { name: currentUser.displayName, lastUpdate: serverTimestamp() });
+            input.value = '';
+        };
+        function loadSupportChat() {
+            onValue(ref(db, `support_chats/${currentUser.uid}/messages`), (snap) => {
+                const box = document.getElementById('support-messages'); box.innerHTML = '';
+                snap.forEach(child => {
+                    const d = child.val(); const isMe = d.sender === 'user';
+                    box.innerHTML += `<div class="msg ${isMe ? 'msg-me' : 'msg-them'}"><span class="msg-info">${isMe ? 'Anda' : 'Admin'}</span>${d.text}</div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        // --- ORDER & TOPUP ---
+        window.openOrder = (service, price, min) => {
+            Swal.fire({
+                title: service, html: `<input type="text" id="tg" class="swal2-input" placeholder="Target/Username"><input type="number" id="qt" class="swal2-input" placeholder="Jumlah (Min. ${min})">`,
+                background: '#18181b', color: '#fff', showCancelButton: true, confirmButtonColor: '#4f46e5',
+                preConfirm: () => {
+                    const tg = document.getElementById('tg').value; const qt = parseInt(document.getElementById('qt').value);
+                    if(!tg || qt < min || isNaN(qt)) return Swal.showValidationMessage('Target kosong atau jumlah kurang dari ' + min);
+                    return { target: tg, qty: qt, price: (qt/1000)*price };
+                }
+            }).then(async (res) => {
+                if(res.isConfirmed) {
+                    const bal = (await get(ref(db, `users/${currentUser.uid}/balance`))).val() || 0;
+                    if(bal < res.value.price) return Swal.fire({background: '#18181b', color: '#fff', icon: 'error', title: 'Saldo Kurang', text: 'Silakan isi saldo terlebih dahulu.'});
+                    
+                    // Potong Saldo User Langsung saat order (Opsional, agar lebih real)
+                    await set(ref(db, `users/${currentUser.uid}/balance`), bal - res.value.price);
+                    
+                    push(ref(db, 'orders'), { userId: currentUser.uid, name: currentUser.displayName, service, ...res.value, status: 'pending', date: new Date().toLocaleString() });
+                    Swal.fire({background: '#18181b', color: '#fff', icon: 'success', title: 'Berhasil', text: 'Pesanan sedang diproses Admin.'});
+                }
+            });
+        };
+        window.processTopup = () => {
+            const total = parseInt(document.getElementById('topupAmt').value) + Math.floor(Math.random()*500);
+            push(ref(db, 'topups'), { userId: currentUser.uid, name: currentUser.displayName, amount: total, status: 'pending', date: new Date().toLocaleString() });
+            Swal.fire({background: '#18181b', color: '#fff', icon: 'info', title: 'Invoice Dibuat', text: 'Transfer tepat Rp ' + total.toLocaleString() + ' ke Dana/Ovo Admin. Hubungi Live Chat jika sudah.'});
+        };
+
+        // --- POPUP & MAINTENANCE ---
+        onValue(ref(db, 'settings/popup'), (s) => {
+            const data = s.val();
+            if (data && data.active && localStorage.getItem('popup_id') !== String(data.id)) {
+                if (data.image) { document.getElementById('popupImg').src = data.image; document.getElementById('popupImg').style.display = 'block'; }
+                document.getElementById('popupText').innerHTML = data.text;
+                document.getElementById('promoPopup').style.display = 'flex';
+                window.tutupPopup = () => { document.getElementById('promoPopup').style.display = 'none'; localStorage.setItem('popup_id', String(data.id)); };
+            } else { document.getElementById('promoPopup').style.display = 'none'; }
+        });
+        onValue(ref(db, 'settings/maintenance'), (s) => {
+            document.getElementById('maintenanceScreen').style.display = s.val() === true ? 'flex' : 'none';
+        });
+    </script>
+</body>
+</html>
